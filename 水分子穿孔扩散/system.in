@@ -1,0 +1,88 @@
+
+
+# ----------------- Init Section -----------------
+
+ dimension    3
+ units real
+ boundary p p p
+ neighbor 2.0 bin
+ neigh_modify every 1 delay 0 check yes exclude type 1 1 exclude type 2 2
+ atom_style   full
+ pair_style   lj/cut/tip4p/long 3 4 1 1 0.1546 8.5 8.5
+ bond_style   harmonic
+ angle_style  harmonic
+ kspace_style pppm/tip4p 0.0001
+ 
+
+# ----------------- Atom Definition Section -----------------
+
+ read_data "system.data"
+
+# ----------------- Settings Section -----------------
+
+ variable e_sw equal 7.0*0.1852
+
+ pair_coeff 1 1 0.0 1.0
+ pair_coeff 1 2 0.0 1.0
+ pair_coeff 1 3 ${e_sw} 3.1589
+ pair_coeff 1 4 0.0 1.0
+ pair_coeff 1 5 0.01852 3.1589
+ 
+ pair_coeff 2 2 0.0 1.0
+ pair_coeff 2 3 ${e_sw} 3.1589
+ pair_coeff 2 4 0.0 1.0 
+ pair_coeff 2 5 0.01852 3.1589 
+ 
+ pair_coeff 3 3 0.1852 3.1589
+ pair_coeff 3 4 0.0 1.0
+ pair_coeff 3 5 0.01852 3.1589 
+ 
+ pair_coeff 4 4 0.0 1.0
+ pair_coeff 4 5 0.0 3.1589 
+ 
+ pair_coeff 5 5 0.01852 3.1589 
+ 
+ bond_coeff   1   600.0   0.9572 
+ angle_coeff  1   75.0    104.52
+ 
+ group upwall type 1
+ group downwall type 2
+ group O type 3
+ group H type 4
+ group A type 5
+ group water type  3  4
+ group gas type 3 4 5
+ 
+ #displace_atoms upwall move 0 50 0 units box
+ 
+ fix 1 upwall setforce 0 0 0 
+ fix 2 downwall setforce 0 0 0 
+ 
+ minimize 0.0 1.0e-8 1000 100000
+
+ unfix 1
+ unfix 2
+
+ fix fShakeSPCE water shake 0.0001 10 0 b 1 a 1
+ 
+ timestep 1
+ 
+ compute myT gas temp 
+ velocity     gas create 1000 372748 temp myT rot yes dist gaussian
+ thermo          1000
+ thermo_style	custom step temp 
+ thermo_modify temp myT
+  
+ dump mydump all custom 1000 dump.lammpstrj id type x y z
+ 
+ fix fxnvt gas nvt temp 1000 1000 100
+ 
+ run 1000000
+ 
+ reset_timestep 0
+ 
+ compute cc2 water chunk/atom bin/1d y 0.0 0.05
+ fix ave water ave/chunk 1 1000000 1000000 cc2 density/mass norm sample file rho.profile
+ 
+ run 1000000
+

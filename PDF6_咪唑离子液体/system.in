@@ -1,0 +1,52 @@
+
+# ----------------- Init Section -----------------
+
+  boundary p p p
+  neighbor 3.0 bin
+  neigh_modify every 1 delay 0 check yes
+  atom_style full
+  units real
+  bond_style harmonic
+  angle_style harmonic
+  dihedral_style opls
+  improper_style cvff
+  pair_style   lj/cut/coul/long 8.5 8.5
+  pair_modify mix geometric
+  special_bonds lj/coul 0.0 0.0 0.5
+  kspace_style pppm 0.0001
+
+# ----------------- Atom Definition Section -----------------
+
+read_data "system.data"
+include "system.in.settings"
+
+# ----------------- Run Section -----------------
+
+ group upwall type 29
+ group downwall type 28
+ group pf6 type 26 27
+ group mizuo subtract all upwall downwall pf6
+ group il subtract all upwall downwall
+ 
+ timestep 1.0
+ 
+ compute myT il temp 
+ velocity     il create 400 372748 temp myT rot yes dist gaussian loop local
+ thermo          1000
+ thermo_style	custom step temp 
+ thermo_modify temp myT flush yes
+  
+ dump mydump all custom 10000 dump.lammpstrj id mol type mass x y z
+ 
+ fix fxnvt1 il nvt temp 400 400 100.0
+ 
+ fix 4 upwall setforce 0.0 0.0 NULL
+ fix 5 upwall aveforce 0.0 0.0 -0.1
+ fix 6 upwall nve 
+ 
+ run 100000
+ write_data equ1.data
+ write_restart restart1.equ
+
+
+ 

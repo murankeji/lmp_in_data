@@ -1,0 +1,86 @@
+
+# ----------------- Init Section -----------------
+  
+  boundary p p p
+  atom_style full
+  neighbor 3.0 bin
+  neigh_modify every 1 delay 0 check yes
+  units real
+  bond_style harmonic
+  angle_style harmonic
+  dihedral_style opls
+  pair_style lj/cut/coul/long 11.0 11.0
+  pair_modify mix geometric
+  special_bonds lj/coul 0.0 0.0 0.5
+  kspace_style pppm 0.0001
+
+# ----------------- Atom Definition Section -----------------
+
+  read_data "system.data"
+
+# ----------------- Settings Section -----------------
+
+  pair_coeff 1 1 1.0 1.0
+  pair_coeff 2 2 0.066 3.5
+  pair_coeff 3 3 0.066 3.5
+  pair_coeff 4 4 0.03 2.5
+  pair_coeff 5 5 0.026290630975 2.5
+  pair_coeff 6 6 0.1579  3.028
+  pair_coeff 7 7 0.0559  2.8
+  pair_coeff 8 8 0.31    4.27
+  pair_coeff 9 9 0.0559  2.8
+  bond_coeff 1 268.0 1.529
+  bond_coeff 2 340.0 1.09
+  bond_coeff 3 600.0 1.0
+  angle_coeff 1 58.35 112.7
+  angle_coeff 2 33.0 107.8
+  angle_coeff 3 37.5 110.7
+  dihedral_coeff 1 0.0 0.0 0.3 0.0
+  dihedral_coeff 2 0.0 0.0 0.3 0.0
+  dihedral_coeff 3 0.6446926386 -0.2143420172 0.1782194073 0.0
+  set type 2 charge -0.222
+  set type 3 charge -0.148
+  set type 4 charge 0.074
+  set type 5 charge 0.074
+
+# ----------------- Run Section -----------------
+  
+  group CO2 type 6 7 
+  group downwall type 1
+  group shierwan type 2 3 4 5
+  group fangyingshi type 8 9
+  
+  region del block 16.11 54.595 16.11 54.595 121 INF units box
+  group del1 region del
+  group del subtract del1 shierwan
+  delete_atoms group del
+  
+  write_data 1.data
+  
+  fix 3 shierwan spring/rg 50.0 10.0
+  fix 2 shierwan nvt temp 300 300 100
+  
+  velocity     shierwan create 300 372748 rot yes dist gaussian loop local
+  timestep 1.0
+  thermo          1000
+  compute myT shierwan temp 
+  thermo_style	custom step temp
+  thermo_modify temp myT flush yes
+  
+  dump mydump all custom 1000 dump.lammpstrj id mol type mass x y z
+ 
+  run 200000
+  unfix 3
+  
+  fix 1 CO2 rigid/nvt/small molecule temp 300.0 300.0 100.0
+  
+  run 200000
+  
+  fix 4 downwall move linear 0 0 0.0001 units box
+  
+  run 200000
+  
+  
+
+  
+

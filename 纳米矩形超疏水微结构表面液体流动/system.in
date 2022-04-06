@@ -1,0 +1,100 @@
+
+variable nx equal 6
+variable a loop 1
+log log.$a
+variable ly index 0.724
+variable vx index 0.1
+variable g_num equal 1
+variable T equal 0.8
+# ----------------- Init Section -----------------
+
+    units        lj
+    boundary p f p
+    neighbor	0.3 bin
+    neigh_modify	every 1 delay 0 check yes cluster yes exclude type 1 1 exclude type 1 4 exclude type 4 4 exclude type 2 2
+    atom_style   atomic
+    pair_style   lj/cut 2.5
+	newton on
+# ----------------- Atom Definition Section -----------------
+
+read_data "system.data"
+replicate ${nx} 1 2
+#read_restart 1.restart
+
+# ----------------- Groove define Section -----------------
+
+variable lx equal ${nx}*7.2
+variable g_begin equal ${g_num}*7.2
+variable g_end equal ${lx}-${g_begin}
+variable g_depth equal -28.8
+region del block ${g_begin} ${g_end} ${g_depth} 0.0 INF INF
+
+region phi block INF INF -0.1 0.1 INF INF
+
+group phi region phi
+
+set group phi type 4
+
+# ----------------- Settings Section ----------------- 
+
+    pair_coeff   1 1  0.0  1.0 		#dwall-dwall
+    pair_coeff   1 2  0.0  1.0		#dwall-uwall
+    pair_coeff   1 3  0.01 1.0		#dwall-flow
+    pair_coeff   1 4  0.0  1.0		#phi-dwall
+
+    pair_coeff   2 2  0.0  1.0		#uwall-uwall
+    pair_coeff   2 3  1.0  1.0  	#uwall-flow
+    pair_coeff   2 4  0.0  1.0		#uwall-phi
+
+    pair_coeff   3 3  1.0  1.0		#flow-flow
+    pair_coeff   3 4  1.0  1.0		#flow-phi
+
+    pair_coeff   4 4  0.0  1.0		#phi-phi
+
+    group upwall type 2
+    group downwall type 1
+    group flow type  3
+
+# ----------------- Run Section -----------------
+
+ timestep 0.002
+ compute	     T_flow flow temp/partial 0 1 1
+ velocity     flow create ${T} 372748 temp T_flow
+ thermo		500
+ thermo_style custom step temp
+ thermo_modify 	temp T_flow
+
+ dump 2 all atom 200000 $a.lammpstrj
+
+ displace_atoms upwall move 0.0 ${ly} 0.0 units box
+ delete_atoms region del
+ 
+ fix   fxnvt flow nvt temp ${T} ${T} 0.2
+ fix_modify fxnvt temp T_flow
+
+ run   500000
+
+ velocity upwall set ${vx} 0.0 0.0 units box
+ fix freeze upwall setforce 0.0 0.0 0.0
+ fix   fxnve upwall nve 
+
+ run   1000000
+
+ write_restart $a.restart
+
+ reset_timestep 0
+ 
+ compute cc1 flow chunk/atom bin/2d x 0.0 1.0 y -0.5 1.0
+ fix 1 flow ave/chunk 1 6000000 6000000 cc1 vx norm sample file v_rho.2d.$a
+
+ run 6000000
+
+clear
+next ly
+next a
+jump system.in
+
+
+
+
+

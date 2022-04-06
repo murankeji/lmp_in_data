@@ -1,0 +1,77 @@
+
+# ----------------- Init Section -----------------
+
+    dimension    3
+	boundary     f f f
+    units        metal
+	neighbor 3.0 bin
+    neigh_modify every 1 delay 0 check yes
+    atom_style   atomic
+    pair_style   eam  
+
+# ----------------- Atom Definition Section -----------------
+
+    lattice		fcc 3.9860
+    region		box block -111.608 111.608 -111.608 111.608 -111.608 111.608 units box
+    create_box	1 box
+    create_atoms	1 box
+
+# ----------------- Settings Section -----------------
+    
+    pair_coeff 1 1 Al_jnp.eam
+	
+# ----------------- group define -----------------	
+
+    region s1 sphere -55.804 -55.804 55.804 49.825 units box	
+	region s2 sphere 55.804 -55.804 55.804 49.825 units box
+	region s3 sphere 55.804 55.804 55.804 49.825 units box
+	region s4 sphere -55.804 55.804 55.804 49.825 units box
+	region s5 sphere -55.804 -55.804 -55.804 49.825 units box
+	region s6 sphere 55.804 -55.804 -55.804 49.825 units box
+	region s7 sphere 55.804 55.804 -55.804 49.825 units box
+	region s8 sphere -55.804 55.804 -55.804 49.825 units box
+	region s union 8 s1 s2 s3 s4 s5 s6 s7 s8
+	group s region s
+	group del subtract all s
+	delete_atoms group del
+	write_data 1.data
+	
+# ----------------- Run Section -----------------
+ 
+ timestep 0.002
+ thermo 1000
+ thermo_style	custom step temp 
+ thermo_modify flush yes 
+ 
+ velocity     all create 580 372748 rot yes dist gaussian loop local
+ dump mydump all custom 10000 dump.lammpstrj id type x y z
+ 
+ fix   fxnvt all nvt temp 580.0 580.0 0.1 
+ 
+ fix xwall all wall/lj93 xlo EDGE 0.001 3.405 4.0 xhi EDGE 0.001 3.405 4.0
+ fix ywall all wall/lj93 ylo EDGE 0.001 3.405 4.0 yhi EDGE 0.001 3.405 4.0
+ fix zwall all wall/lj93 zlo EDGE 0.001 3.405 4.0 zhi EDGE 0.001 3.405 4.0
+
+ run   10000
+ 
+ unfix xwall
+ unfix ywall
+ unfix zwall
+ 
+ variable v equal 0.005
+ variable p_xlo equal xlo+${v}*elapsed*0.002
+ variable p_xhi equal xhi-${v}*elapsed*0.002
+ variable p_ylo equal ylo+${v}*elapsed*0.002
+ variable p_yhi equal yhi-${v}*elapsed*0.002
+ variable p_zlo equal zlo+${v}*elapsed*0.002
+ variable p_zhi equal zhi-${v}*elapsed*0.002
+ 
+ fix xwall all wall/lj93 xlo v_p_xlo 0.001 3.405 4.0 xhi v_p_xhi 0.001 3.405 4.0 units box
+ fix ywall all wall/lj93 ylo v_p_ylo 0.001 3.405 4.0 yhi v_p_yhi 0.001 3.405 4.0 units box
+ fix zwall all wall/lj93 zlo v_p_zlo 0.001 3.405 4.0 zhi v_p_zhi 0.001 3.405 4.0 units box
+ 
+ run   5000000
+ 
+ write_restart 1.restart
+
+

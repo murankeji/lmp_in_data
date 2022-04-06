@@ -1,0 +1,39 @@
+
+import "downwall.lt"
+
+import "alkane16.lt"  # Defines the "Alkane50" molecule
+
+
+
+# Specify the size of the world the polymer lives in:
+write_once("Data Boundary") {
+   0.0  97.92  xlo xhi
+   -10  100.0  ylo yhi
+   0.0  97.92  zlo zhi
+}
+
+polymer = new Alkane16[2].move(25,0,0)
+                      [10].move(0,5,0)
+					  [10].move(0,0,5)
+					  
+polymer[*][*][*].move(27.46,25,26.46)
+					  
+DOWNWALL = new downwall[24].move(4.08,0,0)
+                       [2].move(0,-4.08,0)
+					   [24].move(0,0,4.08)
+
+
+
+###############################################################################
+# Note: If you want to create multiple polymers, and/or mix them with other 
+#       molecules, just add more "new" commands, for example:
+# polymer1 = new Alkane50.move(0,0,10)
+# polymer2 = new Alkane50.move(0,0,20)
+#    :   
+#       ...or use array notation, for example:
+# polymers = new Alkane50[20].move(0,0,10)
+#
+# Note: Multidimensional arrays can be used to fill a planar region or a volume
+# polymers = new Alkane50 [4].move(0, 0, 30.0)
+#                         [4].move(0, 30.0, 0)
+#                         [2].move(70.0, 0, 0)

@@ -1,0 +1,86 @@
+#3-D simulation of the LJ liquid heat transfer in a nano-channel. The walls of the nano-channel are 
+#two parallel FCC crystal[100] faces builded using the coefficients of Pt. The main concern 
+#of this simulation is the kaptiza resistance between liquid and metal under different conditions. 
+
+####################### Global settings #######################
+
+dimension		3
+units 			lj
+boundary		p f p
+atom_style 		atomic
+neighbor		0.3 bin
+neigh_modify    delay 0
+
+####################### Create geometry #####################
+
+read_data		system.data
+
+###################### Define liquid groups #################
+
+group liquid type 1
+group upwall type 2
+group downwall type 3
+group wall union upwall downwall
+
+#################### Define wall three layers region and group ########
+
+region up_fix block INF INF 39.6 INF INF INF units box
+region down_fix block INF INF INF -10.8 INF INF units box
+region up_thermo INF INF 37.8 39.6 INF INF units box
+region down_thermo INF INF -10.8 -9.1 INF INF units box
+group up_fix region up_fix 
+group down_fix region down_fix
+group up_thermo region up_thermo
+group down_thermo region down_thermo
+group up_free subtract upwall up_fix up_thermo
+group down_free subtract downwall down_fix down_thermo
+
+#################### Define LJ potentials ####################
+
+#liquid=1 upwall=2 downwall=3
+
+pair_style	lj/cut 2.5  
+
+pair_coeff	1 1 1 1 2.5 		        #pair between liquid and liquid
+pair_coeff	1 2 0.8 1 2.5		        #pair between liquid and upwall
+pair_coeff	1 3 0.8 1 2.5		        #pair between liquid and downwall
+pair_coeff	2 2 50 0.7342 2.5			#pair between upwall and downwall 0.521 2.5
+pair_coeff	2 3 0 0 0	                #pair between upwall and downwall
+pair_coeff	3 3 50 0.7342 2.5			#pair between downwall and downwall
+
+####################### Run settings ##################
+
+compute	     liquid_c_t liquid temp
+velocity     liquid create 1.0 482748 dist gaussian rot yes temp liquid_c_t units box
+timestep	0.002
+thermo		50
+thermo_style    custom step temp 
+thermo_modify temp liquid_c_t
+
+fix	     liquid_nvt liquid nvt temp 1.0 1.0 0.2 
+fix	     upwall_nvt1 up_thermo nvt temp 1.0 1.0 0.2
+fix	     upwall_nvt2 up_free nvt temp 1.0 1.0 0.2
+fix	     downwall_nvt1 down_thermo nvt temp 1.0 1.0 0.2
+fix	     downwall_nvt2 down_free nvt temp 1.0 1.0 0.2  
+
+run 10000
+
+unfix liquid_nvt
+unfix upwall_nvt2
+unfix downwall_nvt2
+
+fix	     liquid_nve liquid nve
+fix	     upwall_nve up_free nve
+fix	     downwall_nve down_free nve
+
+fix add_F liquid addforce 0.5 0 0
+
+run		100000
+
+variable Ty atom (vz*vz)*mass
+compute mype all pe/atom 
+
+compute cc2 all chunk/atom bin/1d y 0.0 0.2 units box
+fix ave all ave/chunk 1 100000 210000 cc2 density/number vx v_Ty c_mype norm sample file v_T.profile
+ 
+run 100000

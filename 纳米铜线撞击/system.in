@@ -1,0 +1,58 @@
+dimension    3
+boundary     p p p
+units        metal
+atom_style   atomic
+neighbor 2.0 bin
+neigh_modify every 1 delay 0 check yes
+pair_style   eam
+
+region box block -200 200 0 54.225 0 200 units box
+create_box 2 box
+
+lattice fcc  3.6150
+region Cu1 block -150 150 0 54.225 100 150 units box
+create_atoms 1 region Cu1
+
+lattice fcc  3.6150
+region Cu2 block -15 15 0 54.225 50 80 units box
+create_atoms 2 region Cu2
+
+group Cu1 type 1
+group Cu2 type 2
+
+#in e_ss, e denotes epsilon; in s_ss, the first s denotes sigma, the second and third s denotes solid
+#l denotes liquid; g denotes gas
+
+
+pair_coeff * * Cu_u3.eam
+
+timestep 0.002
+thermo 1000
+compute myT Cu1 temp
+compute myT1 Cu1 temp/partial 1 1 0
+thermo_style custom step temp
+thermo_modify temp myT1 flush yes
+
+velocity Cu1 create 300 5645354 temp myT loop local dist gaussian rot yes
+dump mydump all atom 1000 atom.lammpstrj
+
+fix fxnvt Cu1 nvt temp 300.0 300.0 0.2
+
+run 100000
+
+unfix fxnvt
+fix fxnve Cu1 nve
+
+velocity Cu1 set 0.0 0.0 -0.1 units box
+
+run 1000000
+
+
+
+
+
+
+
+
+
+

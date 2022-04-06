@@ -1,0 +1,68 @@
+
+# ----------------- Init Section -----------------
+
+  boundary p p f
+  neighbor 3.0 bin
+  neigh_modify every 1 delay 0 check yes
+  atom_style full
+  units real
+  bond_style harmonic
+  angle_style harmonic
+  dihedral_style opls
+  improper_style cvff
+  pair_style   lj/cut/coul/long 8.5 8.5
+  pair_modify mix geometric
+  special_bonds lj/coul 0.0 0.0 0.5
+  kspace_style pppm 0.0001
+  kspace_modify slab 3.0
+
+# ----------------- Atom Definition Section -----------------
+
+read_data "system.data"
+include "system.in.settings"
+
+# ----------------- Run Section -----------------
+
+ group water type 1 2
+ group hsn subtract all water
+
+ fix fShakeSPCE water shake 0.0001 10 0 b 1 a 1
+ 
+ timestep 1.0
+ 
+ velocity     water create 400 372748 rot yes dist gaussian loop local
+ thermo          1000
+ thermo_style	custom step temp
+ thermo_modify flush yes
+  
+ dump mydump all custom 10000 dump.lammpstrj id mol type mass x y z
+ 
+ fix fxnvt1 water nvt temp 400 400 100.0
+ fix move1 hsn move linear 0 0 0.001 units box
+ 
+ fix wall all wall/lj126 zlo EDGE 0.001 1.0 2.5 zhi EDGE 0.001 1.0 2.5 
+ 
+ run 70000
+ write_data equ1.data
+ write_restart restart1.equ
+ 
+ unfix move1
+ unfix fxnvt1
+ 
+ fix fxnvt2 all nvt temp 400 400 100.0
+ 
+ run 1000000
+ write_data equ2.data
+ write_restart restart2.equ
+ 
+ unfix wall
+ variable up equal elapsed*0.001
+ variable down equal -elapsed*0.001
+ fix wall all wall/lj126 zlo v_up 0.001 1.0 2.5 zhi v_down 0.001 1.0 2.5
+ 
+ run 10000
+ write_data equ3.data
+ write_restart restart3.equ
+
+
+ 

@@ -1,0 +1,21 @@
+
+downwall {
+
+	#AtomID MolID AtomType Charge X Y Z
+	
+	write("Data Atoms") {
+    $atom:DC  $mol:...  @atom:D    0.0              0.000  0.000   0.000
+    $atom:DX  $mol:...  @atom:D    0.0              0.000  -2.04   2.04
+    $atom:DY  $mol:...  @atom:D    0.0              2.04   0.000   2.04
+    $atom:DZ  $mol:...  @atom:D    0.0              2.04   -2.04   0.000
+	}
+	
+	write_once("In Settings") {
+		pair_coeff @atom:D @atom:D 1.0 1.0
+	}
+	
+	write_once("Data Masses") {
+		@atom:D 1.0
+	}
+	
+}

@@ -1,0 +1,51 @@
+
+# ----------------- Init Section -----------------
+
+  boundary p p p
+  neighbor 3.0 bin
+  neigh_modify every 1 delay 0 check yes
+  atom_style full
+  units real
+  bond_style harmonic
+  angle_style harmonic
+  dihedral_style opls
+  improper_style cvff
+  pair_style   lj/cut/coul/long 8.5 8.5
+  pair_modify mix geometric
+  special_bonds lj/coul 0.0 0.0 0.5
+  kspace_style pppm 0.0001
+
+# ----------------- Atom Definition Section -----------------
+
+read_data "system.data"
+
+# ----------------- Run Section -----------------
+
+ group water type 1 2
+ group hsn subtract all water
+
+ fix fShakeSPCE water shake 0.0001 10 0 b 1 a 1
+ 
+ timestep 1.0
+ 
+ velocity     water create 300 372748 rot yes dist gaussian loop local
+ thermo          1000
+ thermo_style	custom step temp
+ thermo_modify flush yes
+  
+ dump mydump all custom 10000 dump.lammpstrj id mol type mass x y z
+ 
+ fix fxnvt all nvt temp 300 300 100.0
+ 
+ run 1000000
+ 
+ compute 1 all stress/atom NULL
+  
+ compute cc1 all chunk/atom bin/1d z 0.0 1.0 units box
+ fix 1 all ave/chunk 1 1000000 2000000 cc1 density/mass c_1[1] c_1[2] c_1[3] norm sample file press.profile
+
+ run 1000000
+ 
+
+
+ 

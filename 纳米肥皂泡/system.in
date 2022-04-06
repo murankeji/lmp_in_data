@@ -1,0 +1,42 @@
+# ----------------- Init Section -----------------
+
+dimension    3
+boundary     p p p
+units        real
+atom_style   full
+bond_style   harmonic
+angle_style  harmonic
+pair_style   lj/charmm/coul/long 9.0 10.0 10.0   
+kspace_style pppm 0.0001
+
+# ----------------- Atom Definition Section -----------------
+
+read_data "system.data"
+
+# ----------------- Settings Section -----------------
+
+bond_coeff   1      600.0    1.0
+angle_coeff  1      75.0     109.47
+pair_coeff   1 1    0.1553   3.166 
+pair_coeff   2 2    0.0      2.058
+pair_coeff   3 3    0.240103 3.405
+
+# ----------------- Run Section -----------------
+
+group wat type  1  2
+group gas type 3
+fix fShakeSPCE wat shake 0.0001 10 0 b 1 a 1 
+
+velocity     all create 300 372748 rot yes dist gaussian
+
+timestep 1.0
+dump mydump all custom 10000 dump.lammpstrj id type x y z
+
+fix   fxnvt1 wat nvt temp 300.0 300.0 100.0
+
+run   50000
+
+fix   fxnvt2 gas nvt temp 300.0 300.0 100.0
+
+run   1000000
+

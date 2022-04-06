@@ -1,0 +1,112 @@
+
+
+units lj 
+dimension	        3 
+boundary	        p p p 
+neighbor	        0.3 bin 
+neigh_modify        every 1 delay 0 check yes 
+
+atom_style	        mdpd 
+
+region box block 0 66 0 50 0 8 units box 
+create_box          5 box 
+
+lattice             fcc 7 
+create_atoms        1 region box units box 
+
+region upwall block INF INF 47 50 INF INF units box 
+group upwall region upwall
+set group upwall type 1
+
+region fluid_1 block INF INF 3 47 INF INF units box
+group fluid_1 region fluid_1
+set group fluid_1 type 2
+
+region fluid_2 block 11 55 3 5 INF INF units box
+group fluid_2 region fluid_2
+delete_atoms group fluid_2
+group fluid_2 delete
+lattice             fcc 1 
+create_atoms 3 region fluid_2 units box
+group fluid_2 region fluid_2
+
+region downwall block INF INF INF 3 INF INF units box
+group downwall region downwall
+set group downwall type 4 
+
+region downwall_pho block 11 55 INF 3 INF INF units box
+group downwall_pho region downwall_pho
+set group downwall_pho type 5 
+
+group fluid union fluid_1 fluid_2 
+
+pair_style          hybrid/overlay mdpd/rhosum mdpd 1.0 1.0 9872598 
+pair_coeff          1 1 mdpd/rhosum  0.75 				  
+pair_coeff          1 1 mdpd         -40 25 18.0 1.0 0.75 
+
+pair_coeff          1 2 mdpd/rhosum  0.75 				  
+pair_coeff          1 2 mdpd         -40 25 18.0 1.0 0.75 
+pair_coeff          1 3 mdpd/rhosum  0.75 				  
+pair_coeff          1 3 mdpd         -40 25 18.0 1.0 0.75 
+pair_coeff          1 4 mdpd/rhosum  0.75 				  
+pair_coeff          1 4 mdpd         -40 25 18.0 1.0 0.75
+pair_coeff          1 5 mdpd/rhosum  0.75 				  
+pair_coeff          1 5 mdpd         -40 25 18.0 1.0 0.75 
+
+pair_coeff          2 2 mdpd/rhosum  0.75 				  
+pair_coeff          2 2 mdpd         -40 25 18.0 1.0 0.75 
+pair_coeff          2 3 mdpd/rhosum  0.75 				  
+pair_coeff          2 3 mdpd         -10 25 18.0 1.0 0.75 
+pair_coeff          2 4 mdpd/rhosum  0.75 				  
+pair_coeff          2 4 mdpd         -40 25 18.0 1.0 0.75 
+pair_coeff          2 5 mdpd/rhosum  0.75 				  
+pair_coeff          2 5 mdpd         -10 25 18.0 1.0 0.75 
+
+pair_coeff          3 3 mdpd/rhosum  0.75 				  
+pair_coeff          3 3 mdpd         0.0 25 18.0 1.0 0.75 
+pair_coeff          3 4 mdpd/rhosum  0.75 				  
+pair_coeff          3 4 mdpd         -10 37 18.0 1.0 0.75
+pair_coeff          3 5 mdpd/rhosum  0.75 				  
+pair_coeff          3 5 mdpd         -10 37 18.0 1.0 0.75  
+
+pair_coeff          4 4 mdpd/rhosum  0.75 				  
+pair_coeff          4 4 mdpd         -40 25 18.0 1.0 0.75
+pair_coeff          4 5 mdpd/rhosum  0.75 				  
+pair_coeff          4 5 mdpd         -40 25 18.0 1.0 0.75  
+
+pair_coeff          5 5 mdpd/rhosum  0.75 				  
+pair_coeff          5 5 mdpd         -40 25 18.0 1.0 0.75 
+
+
+mass                1 1.0
+mass                2 1.0
+mass                3 1.0
+mass                4 1.0
+mass                5 1.0
+
+
+compute             mythermo fluid temp
+thermo              100
+thermo_modify       temp mythermo
+thermo_modify       flush yes
+
+velocity            fluid create 1.0 38497 loop local dist gaussian 
+
+fix         mvv     fluid mvv/dpd 
+
+dump        mydump  all atom 10000 atom.lammpstrj 
+
+timestep            0.01 
+run 100000 
+
+velocity upwall set 0.1 0.0 0.0 units box 
+fix freeze upwall setforce 0.0 0.0 0.0
+fix up upwall mvv/dpd
+
+run 500000 
+
+reset_timestep 0
+compute cc1 fluid chunk/atom bin/2d x 0.0 1.0 y 0.0 1.0 
+fix vel fluid ave/chunk 1 1000000 1000000 cc1 vx vy norm sample file vel.profile
+
+run 1000000 

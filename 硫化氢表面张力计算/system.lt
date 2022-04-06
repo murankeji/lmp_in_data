@@ -1,0 +1,13 @@
+import "H2S.lt"  # 
+
+# Specify the size of the world the polymer lives in:
+write_once("Data Boundary") {
+   0.0    120.0   xlo xhi
+   0.0    80.0   ylo yhi
+   -50.0  130.0  zlo zhi
+}
+
+ h2ss = new h2s [20].move(0.0, 0.0, 4.0)
+                [20].move(0.0, 4.0, 0.0)
+			    [30].move(4.0, 0.0, 0.0)
+       

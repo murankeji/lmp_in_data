@@ -1,0 +1,138 @@
+
+ variable    dt equal 1.0 
+ 
+ variable    kB equal 1.3806504e-23 
+ variable    g_mol2kg equal 1.0e-3/6.02214e23
+ variable    A2m equal 1.0e-10
+ variable    fs2s equal 1.0e-15
+ variable    atm2pa equal 1.01325e5
+ variable    convert_eta equal ${atm2pa}*${fs2s}
+
+ variable    kCal2J equal 4186.0/6.02214e23
+ variable    convert_kappa equal ${kCal2J}/${fs2s}/${A2m}
+
+ timestep ${dt}
+ velocity     all create ${temper} 372748 rot yes dist gaussian
+ thermo		1000
+ thermo_style	custom step temp density 
+
+ fix fxnpt all npt temp ${temper} ${temper} 100.0 iso ${press} ${press} 1000.0
+
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ run 10000
+ 
+###########################################################
+####                       Density                     ####                                
+###########################################################
+
+reset_timestep  0
+run 10000
+
+###########################################################
+####                MP thermal conductivity            ####                                
+###########################################################
+reset_timestep  0
+unfix fxnpt
+fix fxnve all nve
+
+compute         layers_kappa all chunk/atom bin/1d z lower 0.05 units reduced
+fix		ave_T all ave/chunk 10 100 1000 layers_kappa temp
+
+fix		MP_T C thermal/conductivity 10 z 20
+
+variable        tdiff equal (2*f_ave_T[11][3]-f_ave_T[1][3]-f_ave_T[20][3])/2
+thermo_style	custom step temp pe ke etotal density f_MP_T v_tdiff
+
+thermo		1000
+run		30000
+
+# thermal conductivity calculation
+# reset fix thermal/conductivity to zero energy accumulation
+unfix MP_T
+fix		MP_T C thermal/conductivity 10 z 20
+
+variable	kappa equal (f_MP_T/(2*((step-30000)*${dt})*lx*ly+1.0e-10))/(v_tdiff/(lz/2))*${convert_kappa}
+
+thermo_style	custom step temp f_MP_T v_tdiff v_kappa
+
+run		20000
+
+###########################################################
+####                specific heat capacity             ####                                
+###########################################################
+reset_timestep  0
+uncompute layers_kappa
+unfix ave_T
+unfix MP_T
+variable kappa delete
+variable tdiff delete
+
+unfix fxnve
+fix fxnvt all nvt temp ${temper} ${temper} 100.0
+thermo		10000
+thermo_style	custom step temp
+
+run 100000
+reset_timestep  0
+
+variable etotal2 equal etotal*etotal
+variable myetotal equal etotal
+
+fix dE2 all ave/time 1 10000 10000 v_etotal2 v_myetotal ave running
+
+variable Cv equal (f_dE2[1]-f_dE2[2]*f_dE2[2])/${temper}/${temper}/(density*vol)*4186*4186/6.02214/6.02214/1.3806504*1.0e4
+
+thermo_style custom step temp v_Cv
+
+run 100000
+
+variable Cv delete
+variable etotal2 delete
+variable myetotal delete
+unfix dE2
+unfix fxnvt
+thermo_style	custom step temp
+
+###########################################################
+####                shear viscosity                    ####                                
+###########################################################
+reset_timestep 0
+variable	xyrate equal 1e-07 
+
+fix		1 all nvt/sllod temp ${temper} ${temper} 100
+fix		2 all deform 1 xy erate ${xyrate} remap v
+
+compute		usual all temp
+compute		tilt all temp/deform
+
+thermo          1000
+thermo_style	custom step temp c_usual pxy
+thermo_modify	temp tilt
+run		100000
+
+# data gathering run
+
+variable	visc equal -pxy/v_xyrate*v_convert_eta
+
+thermo_style	custom step temp pxy v_visc
+thermo_modify	temp tilt
+
+run		100000

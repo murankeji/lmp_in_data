@@ -1,0 +1,19 @@
+
+import "oplsaa.lt"
+
+
+
+h2s inherits OPLSAA {
+
+  write("Data Atoms") {
+    $atom:s    $mol:... @atom:24    0.0  0.000000      0.000000      0.000000
+	$atom:h1   $mol:... @atom:28    0.0  0.9616047  0.00000  0.927476345
+	$atom:h2   $mol:... @atom:28    0.0  -0.9616047 0.00000  0.927476345
+  }
+
+  write('Data Bond List') {
+    $bond:b1  $atom:s $atom:h1
+    $bond:b2  $atom:s $atom:h2
+  }
+
+} 
