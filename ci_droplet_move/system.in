@@ -1,0 +1,66 @@
+
+units lj
+dimension 3
+boundary p p p
+neighbor 0.3 bin
+neigh_modify every 1 delay 0 check yes
+atom_style mdpd
+
+region box block -50 50 -10 10 0 70 units box
+create_box 3 box
+
+lattice fcc 7
+region part1 block -25 25 -10 10 5 55 units box
+create_atoms 1 region part1
+
+lattice fcc 12
+region part2 cylinder y 0 30 10 -10 10 units box
+create_atoms 2 region part2
+
+lattice fcc 12
+region wall block -50 50 -10 10 0 5 units box
+create_atoms 3 region wall
+
+pair_style hybrid/overlay mdpd/rhosum mdpd 1.0 1.0 56489456
+pair_coeff 1 1 mdpd/rhosum 0.75
+pair_coeff 1 1 mdpd -40 25 18.0 1.0 0.75
+pair_coeff 1 2 mdpd/rhosum 0.75
+pair_coeff 1 2 mdpd -20 15 18.0 1.0 0.75
+pair_coeff 1 3 mdpd/rhosum 0.75
+pair_coeff 1 3 mdpd -20 25 18.0 1.0 0.75
+
+pair_coeff 2 2 mdpd/rhosum 0.75
+pair_coeff 2 2 mdpd -40 25 18.0 1.0 0.75
+pair_coeff 2 3 mdpd/rhosum 0.75
+pair_coeff 2 3 mdpd -40 25 18.0 1.0 0.75
+
+pair_coeff 3 3 mdpd/rhosum 0.75
+pair_coeff 3 3 mdpd -40 25 18.0 1.0 0.75
+
+mass 1 1
+mass 2 1
+mass 3 1
+
+group drop type 1
+group del1 region part2
+group del intersect drop del1
+delete_atoms group del
+group sphere type 2
+
+timestep 0.01
+compute myT drop temp
+thermo 100
+thermo_modify temp myT flush yes
+velocity drop create 1.0 5645354 temp myT loop local dist gaussian
+
+fix mvv drop mvv/dpd
+
+fix 1 sphere rigid single
+
+dump mydump all atom 1000 atom.lammpstrj
+
+run 10000
+
+fix 2 sphere addforce 0.001 0.0 0.0
+
+run 100000
