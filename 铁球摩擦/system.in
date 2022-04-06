@@ -1,0 +1,58 @@
+
+units metal
+dimension 3
+boundary p p p
+neighbor 3 bin
+neigh_modify every 1 delay 0 check yes
+atom_style atomic
+pair_style eam/fs
+
+region box block 0 285.5324 0 39.974536 0 128.48958 units box
+create_box 1 box
+
+lattice fcc 2.855324
+region part1 block 0 285.5324 0 39.974536 0 55.678818 units box
+create_atoms 1 region part1
+
+lattice fcc 2.855324
+region part2 cylinder y 142.7662 84.987268 19.987268 0 39.974536 units box
+create_atoms 1 region part2
+
+pair_coeff * * Fe_mm.eam.fs Fe
+
+region qiu block INF INF INF INF 60 INF units box
+group qiu region qiu
+
+region nomove block INF INF INF INF INF 5 units box
+group nomove region nomove
+
+region sub block INF INF INF INF 5 60 units box
+group sub region sub 
+
+compute myT sub temp
+timestep 0.001
+thermo 100
+thermo_modify temp myT flush yes
+velocity sub create 300 5645354 temp myT loop local dist gaussian
+
+fix fxnvt sub nvt temp 300 300 0.1
+
+dump mydump all atom 2000 atom.lammpstrj
+
+run 200000
+
+fix move1 qiu move linear 0 0 -0.1 units box
+
+run 94000
+
+unfix move1
+fix move2 qiu move linear 0.1 0 0 units box
+
+compute fx qiu reduce sum fx
+compute fz qiu reduce sum fz
+
+thermo_style custom step temp c_fx c_fz
+thermo_modify temp myT
+
+run 1000000
+

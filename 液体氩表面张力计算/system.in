@@ -1,0 +1,38 @@
+
+units real
+dimension 3
+boundary p p p
+neighbor 3 bin
+neigh_modify every 1 delay 0 check yes
+atom_style atomic
+
+region box block -24.255 24.255 -24.255 24.255 -50 50 units box
+create_box 1 box
+
+lattice fcc 5.39
+region ar block -24.255 24.255 -24.255 24.255 -20 20 units box
+create_atoms 1 region ar
+
+pair_style lj/cut 13.6
+pair_coeff 1 1 0.238274541 3.4
+
+mass 1 39.948
+
+timestep 5
+thermo 1000
+thermo_modify flush yes
+velocity all create 94.4 5645354 loop local dist gaussian
+
+fix fxnvt all nvt temp 94.4 94.4 500
+
+dump mydump all atom 1000 atom.lammpstrj
+
+run 500000
+
+compute myp all stress/atom
+fix 1 all ave/spatial 1 1000000 1500000 z lower 0.1 density/mass c_myp[1] c_myp[2] c_myp[3] norm sample file press_H.profile
+
+compute mypress all stress/spatial all plane 1000 z lower
+fix out_mypress all ave/time 1 1000000 1500000 c_mypress mode vector file press_IK.profile
+
+run 1000000

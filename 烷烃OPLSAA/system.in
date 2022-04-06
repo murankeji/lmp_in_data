@@ -1,0 +1,70 @@
+
+
+# ----------------- Init Section -----------------
+
+  units real
+  boundary p p p
+  neighbor	3.0 bin
+  neigh_modify	every 1 delay 0 check yes
+  atom_style full
+  bond_style harmonic
+  angle_style harmonic
+  dihedral_style opls
+  pair_style lj/cut 10.0
+  pair_modify mix geometric
+  special_bonds lj/coul 0.0 0.0 0.5
+
+
+# ----------------- Atom Definition Section -----------------
+
+  read_data "system.data"
+
+# ----------------- Settings Section -----------------
+
+  pair_coeff 1 1 0.175 3.905
+  pair_coeff 2 2 0.118 3.905
+  bond_coeff 1 260.0 1.526
+  bond_coeff 2 260.0 1.526
+  angle_coeff 1 63.0 112.4
+  angle_coeff 2 63.0 112.4
+  dihedral_coeff 1 -3.4 1.25 3.1 0.0
+  dihedral_coeff 2 -3.4 1.25 3.1 0.0
+
+# ----------------- Run Section -----------------
+
+  minimize 1.0e-5 1.0e-7 1000 10000
+  timestep 1.0
+  velocity     all create 400 372748 rot yes loop local dist gaussian
+  dump 1 all custom 10000 dump.lammpstrj id mol type x y z
+  fix   fxnpt all npt temp 400.0 400.0 100.0 iso 1.0 1.0 1000.0
+  
+  group start id 15:36863:16
+  dump start start custom 200 start id mol xu yu zu
+  dump_modify start sort id
+  
+  group end id 16:36864:16
+  dump end end custom 200 end id mol xu yu zu
+  dump_modify end sort id
+  
+  compute cc1 all chunk/atom molecule
+  compute gy all gyration/chunk cc1
+  variable gy equal ave(c_gy)
+  
+  thermo 200
+  thermo_style custom step v_gy
+  thermo_modify flush yes
+  
+  run 500000
+
+  compute g1 all msd
+
+  compute g3 all msd/chunk cc1
+  variable g3 equal ave(c_g3[4])
+  
+  thermo 200
+  thermo_style custom step c_g1[4] v_g3 v_gy
+  thermo_modify flush yes
+  
+  run 1000000
+
+

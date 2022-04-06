@@ -1,0 +1,69 @@
+
+units metal
+dimension 3
+boundary p p p
+neighbor 3 bin
+neigh_modify every 1 delay 0 check yes
+atom_style atomic
+pair_style eam/fs
+
+region box block 0 350 0 39.974536 0 128.48958 units box
+create_box 4 box
+
+lattice fcc 2.855324
+region part1 block 0 285.5324 0 39.974536 0 55.678818 units box
+create_atoms 1 region part1
+
+lattice fcc 2.855324
+region part2 block 300 340 0 39.974536 45.678818 85.678818 units box
+create_atoms 2 region part2
+
+region del1 plane 300 0 45.678818 -1 0 1 units box 
+region del2 plane 300 0 45.678818 1 0 0 units box 
+region del intersect 2 del1 del2
+delete_atoms region del
+
+region fix1 block 0 5 INF INF INF INF units box
+region fix2 block INF INF INF INF 0 5 units box
+region fix union 2 fix1 fix2
+set region fix type 3 
+
+region thermo1 block 5 10 INF INF INF INF units box
+region thermo2 block INF INF INF INF 5 10 units box
+region thermo union 2 thermo1 thermo2
+set region thermo type 4
+
+region free block 10 286 INF INF 10 INF units box
+
+pair_coeff * * Fe_mm.eam.fs Fe
+
+group daoju type 2
+group free type 1
+group fix type 3
+group thermo type 4
+group move union thermo free
+
+compute myT thermo temp
+timestep 0.001
+thermo 100
+thermo_modify temp myT flush yes
+velocity move create 300 5645354 temp myT loop local dist gaussian
+
+fix fxnvt move nvt temp 300 300 0.1
+#assume a single Fe atom has volume of 117 A^3
+compute myp all stress/atom NULL
+​variable  mypxx atom -c_myp[1]/117
+variable  mypyy atom -c_myp[2]/117
+variable  mypzz atom -c_myp[3]/117
+dump mydump all custom 1000 atom.lammpstrj id type x y z v_mypxx v_mypyy v_mypzz
+
+run 200000
+
+unfix fxnvt
+fix fxnvt thermo nvt temp 300 300 0.1
+fix fxnve free 
+
+fix move daoju move linear -1.0 0 0 units box
+
+run 300000
+
